@@ -19,14 +19,39 @@ class PexelsAPI:
     def __init__(self, api_key: str, config: Dict[str, Any]) -> None:
         self.api_key: str = api_key
         self.config: Dict[str, Any] = config
+
+        self._base_url: str = self.config.get("BASE_URL", "")
+        self._photo_base_url: str = self.config.get("PHOTO_BASE_URL", "")
+        self._video_base_url: str = self.config.get("VIDEO_BASE_URL", "")
+        self._search_url: str = self.config.get("SEARCH_URL", "")
+        self._popular_url: str = self.config.get("POPULAR_URL", "")
+        self._curated_url: str = self.config.get("CURATED_URL", "")
+
+        self.results_per_page: int = self.config.get("RESULTS_PER_PAGE", 15)
+        self.default_page: int = self.config.get("DEFAULT_PAGE", 1)
+
         self.request: Optional[requests.Response] = None
         self.json: Optional[Dict[str, Any]] = None
+
         self.total_results: Optional[int] = None
         self.page_results: Optional[int] = None
+
         self.has_next_page: Optional[bool] = None
         self.has_previous_page: Optional[bool] = None
         self.next_page: Optional[str] = None
         self.prev_page: Optional[str] = None
+
+    def _build_url(
+        self,
+        endpoint: str = "",
+        query: str = "",
+        results_per_page: Optional[int] = None,
+        page: Optional[int] = None,
+    ) -> str:
+        results_per_page = results_per_page or self.results_per_page
+        page = page or self.default_page
+        query = query.replace(" ", "+")
+        return f"{self._base_url}/{endpoint}?query={query}&per_page={results_per_page}&page={page}"
 
     def search_photo(
         self,
@@ -34,11 +59,10 @@ class PexelsAPI:
         results_per_page: Optional[int] = None,
         page: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
-        results_per_page = results_per_page or self.config.get("RESULTS_PER_PAGE")
-        page = page or self.config.get("DEFAULT_PAGE")
-        query = query.replace(" ", "+")
-        url = f"{self.config.get('BASE_URL')}{self.config.get('PHOTO_BASE_URL')}/{self.config.get('SEARCH_URL')}?query={query}&per_page={results_per_page}&page={page}"
-        self.__request(url)
+        url = self._build_url(
+            f"{self._photo_base_url}/{self._search_url}", query, results_per_page, page
+        )
+        self._make_request(url)
         return self.json
 
     def search_video(
@@ -47,43 +71,40 @@ class PexelsAPI:
         results_per_page: Optional[int] = None,
         page: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
-        results_per_page = results_per_page or self.config.get("RESULTS_PER_PAGE")
-        page = page or self.config.get("DEFAULT_PAGE")
-        query = query.replace(" ", "+")
-        url = f"{self.config.get('BASE_URL')}{self.config.get('VIDEO_BASE_URL')}/{self.config.get('SEARCH_URL')}?query={query}&per_page={results_per_page}&page={page}"
-        self.__request(url)
+        url = self._build_url(
+            f"{self._video_base_url}/{self._search_url}", query, results_per_page, page
+        )
+        self._make_request(url)
         return self.json
 
     def popular_photo(
         self, results_per_page: Optional[int] = None, page: Optional[int] = None
     ) -> Optional[Dict[str, Any]]:
-        results_per_page = results_per_page or self.config.get("RESULTS_PER_PAGE")
-        page = page or self.config.get("DEFAULT_PAGE")
-        url = f"{self.config.get('BASE_URL')}{self.config.get('PHOTO_BASE_URL')}/{self.config.get('POPULAR_URL')}?per_page={results_per_page}&page={page}"
-        self.__request(url)
+        url = self._build_url(
+            f"{self._photo_base_url}/{self._popular_url}", "", results_per_page, page
+        )
+        self._make_request(url)
         return self.json
 
     def curated_photo(
         self, results_per_page: Optional[int] = None, page: Optional[int] = None
     ) -> Optional[Dict[str, Any]]:
-        results_per_page = results_per_page or self.config.get("RESULTS_PER_PAGE")
-        page = page or self.config.get("DEFAULT_PAGE")
-        url = f"{self.config.get('BASE_URL')}{self.config.get('PHOTO_BASE_URL')}/{self.config.get('CURATED_URL')}?per_page={results_per_page}&page={page}"
-        self.__request(url)
+        url = self._build_url(
+            f"{self._photo_base_url}/{self._curated_url}", "", results_per_page, page
+        )
+        self._make_request(url)
         return self.json
 
     def search_next_page(self) -> Optional[Dict[str, Any]]:
-        if self.has_next_page:
-            if self.next_page is not None:
-                self.__request(self.next_page)
+        if self.has_next_page and self.next_page is not None:
+            self._make_request(self.next_page)
         else:
             return None
         return self.json
 
     def search_previous_page(self) -> Optional[Dict[str, Any]]:
-        if self.has_previous_page:
-            if self.prev_page is not None:
-                self.__request(self.prev_page)
+        if self.has_previous_page and self.prev_page is not None:
+            self._make_request(self.prev_page)
         else:
             return None
         return self.json
@@ -98,18 +119,18 @@ class PexelsAPI:
             return None
         return [Video(json_video) for json_video in self.json.get("videos", [])]
 
-    def __request(self, url: Optional[str]) -> None:
+    def _make_request(self, url: Optional[str]) -> None:
         if url is not None:
             try:
                 self.request = requests.get(
                     url, timeout=15, headers={"Authorization": self.api_key}
                 )
-                self.__update_page_properties()
+                self._update_page_properties()
             except requests.exceptions.RequestException:
                 print("Request failed. Check your internet connection or API key.")
                 self.request = None
 
-    def __update_page_properties(self) -> None:
+    def _update_page_properties(self) -> None:
         if self.request is not None and self.request.ok:
             self.json = self.request.json()
             try:
