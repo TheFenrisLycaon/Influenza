@@ -96,67 +96,65 @@ class PexelsAPI:
         return self.json
 
     def search_next_page(self) -> Optional[Dict[str, Any]]:
-        if self.has_next_page and self.next_page is not None:
+        if self.has_next_page and self.next_page:
             self._make_request(self.next_page)
         else:
             return None
         return self.json
 
     def search_previous_page(self) -> Optional[Dict[str, Any]]:
-        if self.has_previous_page and self.prev_page is not None:
+        if self.has_previous_page and self.prev_page:
             self._make_request(self.prev_page)
         else:
             return None
         return self.json
 
     def get_photo_entries(self) -> Optional[List[Photo]]:
-        if not self.json:
-            return None
-        return [Photo(json_photo) for json_photo in self.json.get("photos", [])]
+        return (
+            [Photo(json_photo) for json_photo in self.json.get("photos", [])]
+            if self.json
+            else None
+        )
 
     def get_video_entries(self) -> Optional[List[Video]]:
-        if not self.json:
-            return None
-        return [Video(json_video) for json_video in self.json.get("videos", [])]
+        return (
+            [Video(json_video) for json_video in self.json.get("videos", [])]
+            if self.json
+            else None
+        )
 
     def _make_request(self, url: Optional[str]) -> None:
-        if url is not None:
-            try:
-                self.request = requests.get(
-                    url, timeout=15, headers={"Authorization": self.api_key}
-                )
-                self._update_page_properties()
-            except requests.exceptions.RequestException:
-                print("Request failed. Check your internet connection or API key.")
-                self.request = None
+        if url is None:
+            print("URL is None. Unable to make request.")
+            return
+
+        try:
+            self.request = requests.get(
+                url, timeout=15, headers={"Authorization": self.api_key}
+            )
+            self._update_page_properties()
+        except requests.exceptions.RequestException:
+            print("Request failed. Check your internet connection or API key.")
+            self.request = None
 
     def _update_page_properties(self) -> None:
-        if self.request is not None and self.request.ok:
-            self.json = self.request.json()
-            try:
-                self.page = int(self.json.get("page"))
-            except Exception:
-                self.page = None
-            try:
-                self.total_results = int(self.json.get("total_results"))
-            except Exception:
-                self.total_results = None
-            try:
-                self.page_results = len(self.json.get("photos", []))
-            except Exception:
-                self.page_results = None
-            try:
-                self.next_page = self.json.get("next_page")
-                self.has_next_page = True
-            except Exception:
-                self.next_page = None
-                self.has_next_page = False
-            try:
-                self.prev_page = self.json.get("prev_page")
-                self.has_previous_page = True
-            except Exception:
-                self.prev_page = None
-                self.has_previous_page = False
-        else:
+        if self.request is None:
+            print("Request object is None. Check your internet connection or API key.")
+            return
+
+        if not self.request.ok:
             print("Wrong response. You might have a wrong API key.")
             self.request = None
+            return
+
+        self.json = self.request.json()
+
+        self.page = self.json.get("page", None)
+        self.total_results = self.json.get("total_results", None)
+        self.page_results = len(self.json.get("photos", []))
+
+        self.next_page = self.json.get("next_page", None)
+        self.has_next_page = self.next_page is not None
+
+        self.prev_page = self.json.get("prev_page", None)
+        self.has_previous_page = self.prev_page is not None
