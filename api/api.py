@@ -12,7 +12,7 @@ class PexelsConfigLoader:
 
     def load_config(self) -> Dict[str, Any]:
         config_data: Dict[str, Any] = toml.load(self.config_file)
-        return config_data["PexelsConfig"]
+        return config_data.get("PexelsConfig", {})
 
 
 class PexelsAPI:
@@ -34,10 +34,10 @@ class PexelsAPI:
         results_per_page: Optional[int] = None,
         page: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
-        results_per_page = results_per_page or self.config["RESULTS_PER_PAGE"]
-        page = page or self.config["DEFAULT_PAGE"]
+        results_per_page = results_per_page or self.config.get("RESULTS_PER_PAGE")
+        page = page or self.config.get("DEFAULT_PAGE")
         query = query.replace(" ", "+")
-        url = f"{self.config['BASE_URL']}{self.config['PHOTO_BASE_URL']}/{self.config['SEARCH_URL']}?query={query}&per_page={results_per_page}&page={page}"
+        url = f"{self.config.get('BASE_URL')}{self.config.get('PHOTO_BASE_URL')}/{self.config.get('SEARCH_URL')}?query={query}&per_page={results_per_page}&page={page}"
         self.__request(url)
         return self.json
 
@@ -47,28 +47,28 @@ class PexelsAPI:
         results_per_page: Optional[int] = None,
         page: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
-        results_per_page = results_per_page or self.config["RESULTS_PER_PAGE"]
-        page = page or self.config["DEFAULT_PAGE"]
+        results_per_page = results_per_page or self.config.get("RESULTS_PER_PAGE")
+        page = page or self.config.get("DEFAULT_PAGE")
         query = query.replace(" ", "+")
-        url = f"{self.config['BASE_URL']}{self.config['VIDEO_BASE_URL']}/{self.config['SEARCH_URL']}?query={query}&per_page={results_per_page}&page={page}"
+        url = f"{self.config.get('BASE_URL')}{self.config.get('VIDEO_BASE_URL')}/{self.config.get('SEARCH_URL')}?query={query}&per_page={results_per_page}&page={page}"
         self.__request(url)
         return self.json
 
     def popular_photo(
         self, results_per_page: Optional[int] = None, page: Optional[int] = None
     ) -> Optional[Dict[str, Any]]:
-        results_per_page = results_per_page or self.config["RESULTS_PER_PAGE"]
-        page = page or self.config["DEFAULT_PAGE"]
-        url = f"{self.config['BASE_URL']}{self.config['PHOTO_BASE_URL']}/{self.config['POPULAR_URL']}?per_page={results_per_page}&page={page}"
+        results_per_page = results_per_page or self.config.get("RESULTS_PER_PAGE")
+        page = page or self.config.get("DEFAULT_PAGE")
+        url = f"{self.config.get('BASE_URL')}{self.config.get('PHOTO_BASE_URL')}/{self.config.get('POPULAR_URL')}?per_page={results_per_page}&page={page}"
         self.__request(url)
         return self.json
 
     def curated_photo(
         self, results_per_page: Optional[int] = None, page: Optional[int] = None
     ) -> Optional[Dict[str, Any]]:
-        results_per_page = results_per_page or self.config["RESULTS_PER_PAGE"]
-        page = page or self.config["DEFAULT_PAGE"]
-        url = f"{self.config['BASE_URL']}{self.config['PHOTO_BASE_URL']}/{self.config['CURATED_URL']}?per_page={results_per_page}&page={page}"
+        results_per_page = results_per_page or self.config.get("RESULTS_PER_PAGE")
+        page = page or self.config.get("DEFAULT_PAGE")
+        url = f"{self.config.get('BASE_URL')}{self.config.get('PHOTO_BASE_URL')}/{self.config.get('CURATED_URL')}?per_page={results_per_page}&page={page}"
         self.__request(url)
         return self.json
 
@@ -91,12 +91,12 @@ class PexelsAPI:
     def get_photo_entries(self) -> Optional[List[Photo]]:
         if not self.json:
             return None
-        return [Photo(json_photo) for json_photo in self.json["photos"]]
+        return [Photo(json_photo) for json_photo in self.json.get("photos", [])]
 
     def get_video_entries(self) -> Optional[List[Video]]:
         if not self.json:
             return None
-        return [Video(json_video) for json_video in self.json["videos"]]
+        return [Video(json_video) for json_video in self.json.get("videos", [])]
 
     def __request(self, url: Optional[str]) -> None:
         if url is not None:
@@ -113,25 +113,25 @@ class PexelsAPI:
         if self.request is not None and self.request.ok:
             self.json = self.request.json()
             try:
-                self.page = int(self.json["page"])
+                self.page = int(self.json.get("page"))
             except Exception:
                 self.page = None
             try:
-                self.total_results = int(self.json["total_results"])
+                self.total_results = int(self.json.get("total_results"))
             except Exception:
                 self.total_results = None
             try:
-                self.page_results = len(self.json["photos"])
+                self.page_results = len(self.json.get("photos", []))
             except Exception:
                 self.page_results = None
             try:
-                self.next_page = self.json["next_page"]
+                self.next_page = self.json.get("next_page")
                 self.has_next_page = True
             except Exception:
                 self.next_page = None
                 self.has_next_page = False
             try:
-                self.prev_page = self.json["prev_page"]
+                self.prev_page = self.json.get("prev_page")
                 self.has_previous_page = True
             except Exception:
                 self.prev_page = None
