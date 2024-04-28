@@ -1,4 +1,6 @@
+# main_script.py
 import requests
+import toml
 
 from api.classes.content import Photo, Video
 
@@ -16,29 +18,48 @@ class PEXELS:
         self.next_page = None
         self.prev_page = None
 
-    def search_photo(self, query, results_per_page=15, page=1):
+        self.load_config()
+
+    def load_config(self):
+        config_data = toml.load("config.toml")
+        
+        self._base_url = config_data["PexelsConfig"]["BASE_URL"]
+        self._photo_base_url = config_data["PexelsConfig"]["PHOTO_BASE_URL"]
+        self._video_base_url = config_data["PexelsConfig"]["VIDEO_BASE_URL"]
+        self._search_url = config_data["PexelsConfig"]["SEARCH_URL"]
+        self._popular_url = config_data["PexelsConfig"]["POPULAR_URL"]
+        self._curated_url = config_data["PexelsConfig"]["CURATED_URL"]
+
+        self.results_per_page = config_data["PexelsConfig"]["RESULTS_PER_PAGE"]
+        self.default_page = config_data["PexelsConfig"]["DEFAULT_PAGE"]
+
+    def search_photo(self, query, results_per_page=None, page=None):
+        results_per_page = results_per_page or self.results_per_page
+        page = page or self.default_page
         query = query.replace(" ", "+")
-        url = f"https://api.pexels.com/v1/search?query={query}&per_page={results_per_page}&page={page}"
+        url = f"{self._base_url}{self._photo_base_url}/{self._search_url}?query={query}&per_page={results_per_page}&page={page}"
         self.__request(url)
         return None if not self.request else self.json
 
-    def search_video(self, query, results_per_page=15, page=1):
+    def search_video(self, query, results_per_page=None, page=None):
+        results_per_page = results_per_page or self.results_per_page
+        page = page or self.default_page
         query = query.replace(" ", "+")
-        url = f"https://api.pexels.com/videos/search?query={query}&per_page={results_per_page}&page={page}"
+        url = f"{self._base_url}{self._video_base_url}/{self._search_url}?query={query}&per_page={results_per_page}&page={page}"
         self.__request(url)
         return None if not self.request else self.json
 
-    def popular_photo(self, results_per_page=15, page=1):
-        url = "https://api.pexels.com/v1/popular?per_page={}&page={}".format(
-            results_per_page, page
-        )
+    def popular_photo(self, results_per_page=None, page=None):
+        results_per_page = results_per_page or self.results_per_page
+        page = page or self.default_page
+        url = f"{self._base_url}{self._photo_base_url}/{self._popular_url}?per_page={results_per_page}&page={page}"
         self.__request(url)
         return None if not self.request else self.json
 
-    def curated_photo(self, results_per_page=15, page=1):
-        url = "https://api.pexels.com/v1/curated?per_page={}&page={}".format(
-            results_per_page, page
-        )
+    def curated_photo(self, results_per_page=None, page=None):
+        results_per_page = results_per_page or self.results_per_page
+        page = page or self.default_page
+        url = f"{self._base_url}{self._photo_base_url}/{self._curated_url}?per_page={results_per_page}&page={page}"
         self.__request(url)
         return None if not self.request else self.json
 

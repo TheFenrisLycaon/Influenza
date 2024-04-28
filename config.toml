@@ -1,0 +1,10 @@
+[PexelsConfig]
+    BASE_URL = "https://api.pexels.com/"
+    PHOTO_BASE_URL = "v1"
+    VIDEO_BASE_URL = "videos"
+    SEARCH_URL = "search"
+    POPULAR_URL = "popular"
+    CURATED_URL = "curated"
+
+    RESULTS_PER_PAGE = 15
+    DEFAULT_PAGE = 1
