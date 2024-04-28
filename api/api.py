@@ -1,16 +1,24 @@
-# main_script.py
 import requests
 import toml
 
 from api.classes.content import Photo, Video
 
 
-class PEXELS:
-    def __init__(self, API_KEY):
-        self.PEXELS_AUTHORIZATION = {"Authorization": API_KEY}
+class PexelsConfigLoader:
+    def __init__(self, config_file="config.toml"):
+        self.config_file = config_file
+
+    def load_config(self):
+        config_data = toml.load(self.config_file)
+        return config_data["PexelsConfig"]
+
+
+class PexelsAPI:
+    def __init__(self, api_key, config):
+        self.api_key = api_key
+        self.config = config
         self.request = None
         self.json = None
-        self.page = None
         self.total_results = None
         self.page_results = None
         self.has_next_page = None
@@ -18,48 +26,33 @@ class PEXELS:
         self.next_page = None
         self.prev_page = None
 
-        self.load_config()
-
-    def load_config(self):
-        config_data = toml.load("config.toml")
-        
-        self._base_url = config_data["PexelsConfig"]["BASE_URL"]
-        self._photo_base_url = config_data["PexelsConfig"]["PHOTO_BASE_URL"]
-        self._video_base_url = config_data["PexelsConfig"]["VIDEO_BASE_URL"]
-        self._search_url = config_data["PexelsConfig"]["SEARCH_URL"]
-        self._popular_url = config_data["PexelsConfig"]["POPULAR_URL"]
-        self._curated_url = config_data["PexelsConfig"]["CURATED_URL"]
-
-        self.results_per_page = config_data["PexelsConfig"]["RESULTS_PER_PAGE"]
-        self.default_page = config_data["PexelsConfig"]["DEFAULT_PAGE"]
-
     def search_photo(self, query, results_per_page=None, page=None):
-        results_per_page = results_per_page or self.results_per_page
-        page = page or self.default_page
+        results_per_page = results_per_page or self.config["RESULTS_PER_PAGE"]
+        page = page or self.config["DEFAULT_PAGE"]
         query = query.replace(" ", "+")
-        url = f"{self._base_url}{self._photo_base_url}/{self._search_url}?query={query}&per_page={results_per_page}&page={page}"
+        url = f"{self.config['BASE_URL']}{self.config['PHOTO_BASE_URL']}/{self.config['SEARCH_URL']}?query={query}&per_page={results_per_page}&page={page}"
         self.__request(url)
         return None if not self.request else self.json
 
     def search_video(self, query, results_per_page=None, page=None):
-        results_per_page = results_per_page or self.results_per_page
-        page = page or self.default_page
+        results_per_page = results_per_page or self.config["RESULTS_PER_PAGE"]
+        page = page or self.config["DEFAULT_PAGE"]
         query = query.replace(" ", "+")
-        url = f"{self._base_url}{self._video_base_url}/{self._search_url}?query={query}&per_page={results_per_page}&page={page}"
+        url = f"{self.config['BASE_URL']}{self.config['VIDEO_BASE_URL']}/{self.config['SEARCH_URL']}?query={query}&per_page={results_per_page}&page={page}"
         self.__request(url)
         return None if not self.request else self.json
 
     def popular_photo(self, results_per_page=None, page=None):
-        results_per_page = results_per_page or self.results_per_page
-        page = page or self.default_page
-        url = f"{self._base_url}{self._photo_base_url}/{self._popular_url}?per_page={results_per_page}&page={page}"
+        results_per_page = results_per_page or self.config["RESULTS_PER_PAGE"]
+        page = page or self.config["DEFAULT_PAGE"]
+        url = f"{self.config['BASE_URL']}{self.config['PHOTO_BASE_URL']}/{self.config['POPULAR_URL']}?per_page={results_per_page}&page={page}"
         self.__request(url)
         return None if not self.request else self.json
 
     def curated_photo(self, results_per_page=None, page=None):
-        results_per_page = results_per_page or self.results_per_page
-        page = page or self.default_page
-        url = f"{self._base_url}{self._photo_base_url}/{self._curated_url}?per_page={results_per_page}&page={page}"
+        results_per_page = results_per_page or self.config["RESULTS_PER_PAGE"]
+        page = page or self.config["DEFAULT_PAGE"]
+        url = f"{self.config['BASE_URL']}{self.config['PHOTO_BASE_URL']}/{self.config['CURATED_URL']}?per_page={results_per_page}&page={page}"
         self.__request(url)
         return None if not self.request else self.json
 
@@ -90,17 +83,16 @@ class PEXELS:
     def __request(self, url):
         try:
             self.request = requests.get(
-                url, timeout=15, headers=self.PEXELS_AUTHORIZATION
+                url, timeout=15, headers={"Authorization": self.api_key}
             )
             self.__update_page_properties()
         except requests.exceptions.RequestException:
-            print("Request failed check your internet connection")
+            print("Request failed. Check your internet connection or API key.")
             self.request = None
-            exit()
 
     def __update_page_properties(self):
-        if self.request.ok:  # type: ignore
-            self.json = self.request.json()  # type: ignore
+        if self.request.ok:
+            self.json = self.request.json()
             try:
                 self.page = int(self.json["page"])
             except Exception:
@@ -126,8 +118,5 @@ class PEXELS:
                 self.prev_page = None
                 self.has_previous_page = False
         else:
-            print("Wrong response. You might have a wrong API key")
-            print(self.request)
-            print("API key: {}".format(self.PEXELS_AUTHORIZATION))
+            print("Wrong response. You might have a wrong API key.")
             self.request = None
-            exit()
