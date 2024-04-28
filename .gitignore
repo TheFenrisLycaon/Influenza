@@ -1,3 +1,5 @@
 **/__pycache__/**
 examples
 const.toml
+private/**
+assets/**
