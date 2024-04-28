@@ -95,6 +95,24 @@ class PexelsAPI:
         self._make_request(url)
         return self.json
 
+    def popular_video(
+        self, results_per_page: Optional[int] = None, page: Optional[int] = None
+    ) -> Optional[Dict[str, Any]]:
+        url = self._build_url(
+            f"{self._video_base_url}/{self._popular_url}", "", results_per_page, page
+        )
+        self._make_request(url)
+        return self.json
+
+    def curated_video(
+        self, results_per_page: Optional[int] = None, page: Optional[int] = None
+    ) -> Optional[Dict[str, Any]]:
+        url = self._build_url(
+            f"{self._video_base_url}/{self._curated_url}", "", results_per_page, page
+        )
+        self._make_request(url)
+        return self.json
+
     def search_next_page(self) -> Optional[Dict[str, Any]]:
         if self.has_next_page and self.next_page:
             self._make_request(self.next_page)
